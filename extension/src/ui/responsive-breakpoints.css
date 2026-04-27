@@ -1,0 +1,60 @@
+/**
+ * responsive-breakpoints.css
+ * Mobile/Tablet optimizations for Kairo AI
+ */
+
+/* ── Tablet (up to 1024px) ── */
+@media screen and (max-width: 1024px) {
+  #kairo-ai-panel {
+    width: 360px;
+  }
+}
+
+/* ── Mobile (up to 768px) ── */
+@media screen and (max-width: 768px) {
+  #kairo-ai-panel {
+    width: 320px;
+    padding: 16px;
+  }
+
+  .kairo-action-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .kairo-btn {
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+
+  .kairo-header {
+    padding-bottom: 12px;
+  }
+}
+
+/* ── Small Mobile (up to 360px) ── */
+@media screen and (max-width: 360px) {
+  #kairo-ai-panel {
+    width: 280px;
+    gap: 12px;
+  }
+
+  .kairo-footer {
+    flex-direction: column;
+  }
+
+  .kairo-footer-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── Reduced Motion ── */
+@media (prefers-reduced-motion: reduce) {
+  #kairo-ai-panel,
+  #kairo-response-area,
+  .kairo-btn,
+  .kairo-footer-btn {
+    transition: none !important;
+    animation: none !important;
+  }
+}

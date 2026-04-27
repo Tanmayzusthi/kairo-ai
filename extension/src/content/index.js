@@ -1,432 +1,402 @@
 /* ─── Kairo AI Content Script ───────────────────────────────────────────────
-   Injects a floating action panel on text selection.
-   Supports 6 one-click actions + a custom prompt input.
-   All styling is injected inline to avoid conflicts with page CSS.
+   Injects a Claude-inspired floating action panel on text selection.
+   Design: Minimalist, Typography-first, Refined.
 ──────────────────────────────────────────────────────────────────────────── */
 
 const KAIRO_STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
   #kairo-ai-root {
     position: absolute;
     z-index: 2147483647;
-    font-family: system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     pointer-events: none;
+    line-height: 1.6;
   }
 
   #kairo-ai-panel {
-    background: #111;
-    border: 1px solid #2A2A2A;
-    border-radius: 14px;
-    box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
-    padding: 10px;
+    width: 420px;
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    width: 320px;
+    gap: 16px;
     pointer-events: auto;
     opacity: 0;
-    transform: translateY(10px) scale(0.95);
-    transition: opacity 140ms ease, transform 140ms cubic-bezier(0.16, 1, 0.3, 1);
-    color: #EDEDED;
+    transform: translateY(10px);
+    transition: opacity 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    color: #1F2937;
   }
 
-  #kairo-ai-panel.kairo-visible {
+  #kairo-ai-panel.visible {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 
-  /* ── Header ── */
-  .kairo-header {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 2px 4px 6px;
-    border-bottom: 1px solid #222;
+  /* ── Selection Preview ── */
+  .kairo-selection-preview {
+    font-size: 13px;
+    color: #6B7280;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #F3F4F6;
   }
-  .kairo-logo {
-    width: 16px;
-    height: 16px;
-    fill: #7C6AF7;
-  }
-  .kairo-title {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    color: #aaa;
-    text-transform: uppercase;
-  }
-  .kairo-close {
-    margin-left: auto;
-    background: none;
-    border: none;
-    color: #555;
-    cursor: pointer;
-    font-size: 16px;
-    line-height: 1;
-    padding: 0 2px;
-    transition: color 120ms;
-  }
-  .kairo-close:hover { color: #ddd; }
 
-  /* ── Action Buttons Grid ── */
+  /* ── Action Grid ── */
   .kairo-action-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 5px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
   }
 
   .kairo-btn {
-    background: #1C1C1C;
-    border: 1px solid #2E2E2E;
-    color: #DADADA;
+    background: #F9FAFB;
+    border: 1px solid #E5E7EB;
+    color: #374151;
     border-radius: 8px;
-    padding: 7px 6px;
-    font-size: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    transition: background 120ms, border-color 120ms, transform 100ms;
+    justify-content: center;
+    gap: 6px;
+    transition: all 150ms ease;
     user-select: none;
   }
+
   .kairo-btn:hover {
-    background: #252525;
-    border-color: #3A3A3A;
+    background: #F3F4F6;
+    border-color: #D1D5DB;
+    color: #111827;
   }
-  .kairo-btn:active { transform: scale(0.95); }
+
+  .kairo-btn:active {
+    transform: scale(0.97);
+  }
+
   .kairo-btn svg {
-    width: 15px;
-    height: 15px;
-    stroke: currentColor;
-    fill: none;
-    stroke-width: 1.8;
-    stroke-linecap: round;
-    stroke-linejoin: round;
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
   }
 
   /* ── Custom Input ── */
   .kairo-custom-row {
     display: flex;
-    gap: 5px;
+    gap: 8px;
+    background: #F9FAFB;
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid #E5E7EB;
   }
   .kairo-custom-input {
     flex: 1;
-    background: #1C1C1C;
-    border: 1px solid #2E2E2E;
-    border-radius: 8px;
-    color: #EDEDED;
-    font-size: 12px;
-    padding: 7px 9px;
-    outline: none;
-    transition: border-color 120ms;
-  }
-  .kairo-custom-input::placeholder { color: #555; }
-  .kairo-custom-input:focus { border-color: #7C6AF7; }
-  .kairo-custom-send {
-    background: #7C6AF7;
+    background: transparent;
     border: none;
-    border-radius: 8px;
-    color: #fff;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    padding: 7px 12px;
-    transition: background 120ms, transform 100ms;
+    font-size: 14px;
+    padding: 8px 12px;
+    outline: none;
+    color: #111827;
   }
-  .kairo-custom-send:hover { background: #6a5ae0; }
-  .kairo-custom-send:active { transform: scale(0.95); }
+  .kairo-custom-input::placeholder { color: #9CA3AF; }
+  .kairo-custom-send {
+    background: #2563EB;
+    border: none;
+    border-radius: 7px;
+    color: #FFFFFF;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 0 16px;
+    transition: background 150ms ease;
+  }
+  .kairo-custom-send:hover { background: #1D4ED8; }
 
   /* ── Response Area ── */
   #kairo-response-area {
     display: none;
-    font-size: 13px;
+    font-size: 15px;
     line-height: 1.6;
-    padding: 10px;
-    background: #161616;
-    border-radius: 8px;
-    border: 1px solid #252525;
-    max-height: 220px;
+    color: #1F2937;
+    max-height: 300px;
     overflow-y: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
+    padding: 4px 0;
   }
-  #kairo-response-area.kairo-active { display: block; animation: kairoFadeIn 140ms ease forwards; }
-  #kairo-response-area.kairo-error { color: #f87171; }
+  #kairo-response-area.active {
+    display: block;
+    animation: kairoFadeIn 300ms ease-out;
+  }
+
+  #kairo-response-area code {
+    background: #F3F4F6;
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 13px;
+  }
 
   /* ── Loader ── */
   .kairo-loader {
     display: none;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 12px;
-    font-size: 12px;
-    color: #666;
+    gap: 10px;
+    padding: 10px 0;
+    color: #6B7280;
+    font-size: 14px;
   }
-  .kairo-loader.kairo-active { display: flex; }
-  .kairo-spinner {
-    width: 14px; height: 14px;
-    border: 2px solid #333;
-    border-top-color: #7C6AF7;
+  .kairo-loader.active { display: flex; }
+  .kairo-dots { display: flex; gap: 4px; }
+  .kairo-dot {
+    width: 4px; height: 4px;
+    background: #9CA3AF;
     border-radius: 50%;
-    animation: kairoSpin 0.7s linear infinite;
+    animation: kairoPulse 1s infinite alternate;
   }
+  .kairo-dot:nth-child(2) { animation-delay: 0.2s; }
+  .kairo-dot:nth-child(3) { animation-delay: 0.4s; }
+
+  /* ── Footer ── */
+  .kairo-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 12px;
+    border-top: 1px solid #F3F4F6;
+  }
+  .kairo-footer-btn {
+    background: #FFFFFF;
+    border: 1px solid #E5E7EB;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    color: #4B5563;
+    transition: all 150ms ease;
+  }
+  .kairo-footer-btn:hover { background: #F9FAFB; border-color: #D1D5DB; }
+  .kairo-footer-btn.primary {
+    background: #2563EB;
+    border-color: #2563EB;
+    color: #FFFFFF;
+  }
+  .kairo-footer-btn.primary:hover { background: #1D4ED8; }
 
   @keyframes kairoFadeIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
   }
-  @keyframes kairoSpin {
-    to { transform: rotate(360deg); }
+  @keyframes kairoPulse {
+    from { opacity: 0.3; transform: scale(0.8); }
+    to { opacity: 1; transform: scale(1.1); }
+  }
+
+  /* ── Mobile ── */
+  @media (max-width: 480px) {
+    #kairo-ai-panel { width: 320px; padding: 16px; }
+    .kairo-action-grid { grid-template-columns: 1fr 1fr; }
   }
 `;
 
-// ─── SVG Icons (stroke-based, no fill) ────────────────────────────────────────
-
 const ICONS = {
-  logo:       `<svg viewBox="0 0 24 24" fill="#7C6AF7" stroke="none"><path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9Z"/></svg>`,
-  summarize:  `<svg viewBox="0 0 24 24"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>`,
-  explain:    `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
-  rewrite:    `<svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
-  reply:      `<svg viewBox="0 0 24 24"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>`,
-  translate:  `<svg viewBox="0 0 24 24"><path d="M2 5h7M9 3v2c0 4.418-2.239 8-5 8"/><path d="M14 21l3-7 3 7M15.5 18h3"/><path d="M22 5h-8M18 3v2c0 4.418 2.239 8 5 8"/></svg>`,
-  fix_grammar:`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`,
+  summarize: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>`,
+  explain: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`,
+  rewrite: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  reply: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>`,
+  translate: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 5h7M9 3v2c0 4.418-2.239 8-5 8"/><path d="M14 21l3-7 3 7M15.5 18h3"/><path d="M22 5h-8M18 3v2c0 4.418 2.239 8 5 8"/></svg>`,
+  fix: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"/></svg>`,
 };
 
-// ─── Main Class ───────────────────────────────────────────────────────────────
-
-class KairoContentUI {
+class KairoUI {
   constructor() {
     this.currentSelection = '';
-    this.selectionTimeout = null;
     this.isProcessing = false;
-
     this.injectStyles();
     this.createDOM();
     this.bindEvents();
   }
 
-  // ── Styles ──────────────────────────────────────────────────────────────────
-
   injectStyles() {
-    if (document.getElementById('kairo-styles')) return;
-    const styleEl = document.createElement('style');
-    styleEl.id = 'kairo-styles';
-    styleEl.textContent = KAIRO_STYLES;
-    document.head.appendChild(styleEl);
+    const style = document.createElement('style');
+    style.textContent = KAIRO_STYLES;
+    document.head.appendChild(style);
   }
-
-  // ── DOM Creation ─────────────────────────────────────────────────────────────
 
   createDOM() {
     this.root = document.createElement('div');
     this.root.id = 'kairo-ai-root';
+    this.root.style.top = '-9999px';
+    this.root.style.left = '-9999px';
 
     this.panel = document.createElement('div');
     this.panel.id = 'kairo-ai-panel';
-    this.panel.setAttribute('role', 'dialog');
-    this.panel.setAttribute('aria-label', 'Kairo AI Assistant');
 
-    // Header
-    const header = document.createElement('div');
-    header.className = 'kairo-header';
-    header.innerHTML = `${ICONS.logo}<span class="kairo-title">Kairo AI</span>`;
-    this.closeBtn = document.createElement('button');
-    this.closeBtn.className = 'kairo-close';
-    this.closeBtn.innerHTML = '&times;';
-    this.closeBtn.setAttribute('aria-label', 'Close Kairo AI panel');
-    header.appendChild(this.closeBtn);
+    // Preview
+    this.preview = document.createElement('div');
+    this.preview.className = 'kairo-selection-preview';
+    this.panel.appendChild(this.preview);
 
-    // Action grid — 6 one-click actions
+    // Actions
     const grid = document.createElement('div');
     grid.className = 'kairo-action-grid';
     const actions = [
-      { key: 'summarize',   label: 'Summarize',  icon: ICONS.summarize  },
-      { key: 'explain',     label: 'Explain',    icon: ICONS.explain    },
-      { key: 'rewrite',     label: 'Rewrite',    icon: ICONS.rewrite    },
-      { key: 'reply',       label: 'Reply',      icon: ICONS.reply      },
-      { key: 'translate',   label: 'Translate',  icon: ICONS.translate  },
-      { key: 'fix_grammar', label: 'Fix Grammar',icon: ICONS.fix_grammar},
+      { id: 'summarize', label: 'Summarize', icon: ICONS.summarize },
+      { id: 'explain',   label: 'Explain',   icon: ICONS.explain },
+      { id: 'rewrite',   label: 'Rewrite',   icon: ICONS.rewrite },
+      { id: 'reply',     label: 'Reply',     icon: ICONS.reply },
+      { id: 'translate', label: 'Translate', icon: ICONS.translate },
+      { id: 'fix_grammar', label: 'Fix Grammar', icon: ICONS.fix },
     ];
-    actions.forEach(({ key, label, icon }) => {
-      const btn = this.createActionButton(label, icon, key);
+
+    actions.forEach(act => {
+      const btn = document.createElement('button');
+      btn.className = 'kairo-btn';
+      btn.innerHTML = `${act.icon}<span>${act.label}</span>`;
+      btn.onclick = () => this.handleAction(act.id);
       grid.appendChild(btn);
     });
+    this.panel.appendChild(grid);
 
-    // Custom prompt row
+    // Custom
     const customRow = document.createElement('div');
     customRow.className = 'kairo-custom-row';
-    this.customInput = document.createElement('input');
-    this.customInput.className = 'kairo-custom-input';
-    this.customInput.type = 'text';
-    this.customInput.placeholder = 'Custom prompt…';
-    this.customInput.maxLength = 500;
-    this.customSend = document.createElement('button');
-    this.customSend.className = 'kairo-custom-send';
-    this.customSend.textContent = 'Go';
-    customRow.appendChild(this.customInput);
-    customRow.appendChild(this.customSend);
+    this.input = document.createElement('input');
+    this.input.className = 'kairo-custom-input';
+    this.input.placeholder = 'Ask anything about this text...';
+    this.input.onkeydown = (e) => e.key === 'Enter' && this.handleAction('custom');
+    
+    const send = document.createElement('button');
+    send.className = 'kairo-custom-send';
+    send.textContent = 'Ask';
+    send.onclick = () => this.handleAction('custom');
+
+    customRow.appendChild(this.input);
+    customRow.appendChild(send);
+    this.panel.appendChild(customRow);
 
     // Loader
     this.loader = document.createElement('div');
     this.loader.className = 'kairo-loader';
-    this.loader.innerHTML = '<div class="kairo-spinner"></div><span>Generating…</span>';
+    this.loader.innerHTML = `
+      <div class="kairo-dots"><div class="kairo-dot"></div><div class="kairo-dot"></div><div class="kairo-dot"></div></div>
+      <span>Kairo is thinking...</span>
+    `;
+    this.panel.appendChild(this.loader);
 
     // Response
-    this.responseArea = document.createElement('div');
-    this.responseArea.id = 'kairo-response-area';
+    this.response = document.createElement('div');
+    this.response.id = 'kairo-response-area';
+    this.panel.appendChild(this.response);
 
-    this.panel.appendChild(header);
-    this.panel.appendChild(grid);
-    this.panel.appendChild(customRow);
-    this.panel.appendChild(this.loader);
-    this.panel.appendChild(this.responseArea);
+    // Footer
+    const footer = document.createElement('div');
+    footer.className = 'kairo-footer';
+    
+    const close = document.createElement('button');
+    close.className = 'kairo-footer-btn';
+    close.textContent = 'Close';
+    close.onclick = () => this.hide();
+
+    this.copy = document.createElement('button');
+    this.copy.className = 'kairo-footer-btn primary';
+    this.copy.textContent = 'Copy';
+    this.copy.style.display = 'none';
+    this.copy.onclick = () => this.handleCopy();
+
+    footer.appendChild(close);
+    footer.appendChild(this.copy);
+    this.panel.appendChild(footer);
+
     this.root.appendChild(this.panel);
     document.body.appendChild(this.root);
   }
 
-  createActionButton(label, icon, actionKey) {
-    const btn = document.createElement('button');
-    btn.className = 'kairo-btn';
-    btn.id = `kairo-btn-${actionKey}`;
-    btn.innerHTML = `${icon}<span>${label}</span>`;
-    btn.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); });
-    btn.addEventListener('click', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      this.handleAction(actionKey);
-    });
-    return btn;
-  }
-
-  // ── Events ───────────────────────────────────────────────────────────────────
-
   bindEvents() {
-    document.addEventListener('mouseup', e => this.handleSelectionChange(e));
-
-    document.addEventListener('mousedown', e => {
-      if (!this.root.contains(e.target)) this.hidePanel();
-    });
-
-    this.closeBtn.addEventListener('click', () => this.hidePanel());
-
-    // Custom prompt: send on Enter or button click
-    this.customInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') this.handleCustomAction();
-    });
-    this.customSend.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); });
-    this.customSend.addEventListener('click', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      this.handleCustomAction();
-    });
-  }
-
-  handleSelectionChange(e) {
-    clearTimeout(this.selectionTimeout);
-    this.selectionTimeout = setTimeout(() => {
-      const selection = window.getSelection();
-      const text = selection ? selection.toString().trim() : '';
-
-      if (text.length > 5 && !this.root.contains(e.target)) {
-        this.currentSelection = text.substring(0, 5000);
-        const range = selection.getRangeAt(0);
-        const rect = range.getBoundingClientRect();
-        this.showPanel(
-          rect.left + window.scrollX + rect.width / 2,
-          rect.bottom + window.scrollY + 12
-        );
-      } else if (text.length === 0 && !this.root.contains(e.target)) {
-        this.hidePanel();
+    document.addEventListener('mouseup', (e) => {
+      const sel = window.getSelection();
+      const text = sel.toString().trim();
+      if (text && !this.panel.contains(e.target)) {
+        this.currentSelection = text;
+        this.show(e);
       }
-    }, 50);
-  }
+    });
 
-  // ── Panel Show/Hide ──────────────────────────────────────────────────────────
-
-  showPanel(x, y) {
-    const panelWidth = 320;
-    const leftPos = Math.max(10, Math.min(x - panelWidth / 2, window.innerWidth - panelWidth - 10));
-    this.root.style.left = `${leftPos + window.scrollX}px`;
-    this.root.style.top = `${y}px`;
-
-    this.resetResponseArea();
-    this.customInput.value = '';
-
-    requestAnimationFrame(() => {
-      this.panel.classList.add('kairo-visible');
+    document.addEventListener('mousedown', (e) => {
+      if (!this.panel.contains(e.target) && this.panel.classList.contains('visible')) {
+        this.hide();
+      }
     });
   }
 
-  hidePanel() {
-    this.panel.classList.remove('kairo-visible');
+  show(e) {
+    this.preview.textContent = `“${this.currentSelection.substring(0, 60)}...”`;
+    this.response.classList.remove('active');
+    this.copy.style.display = 'none';
+    this.input.value = '';
+    
+    const x = e.pageX;
+    const y = e.pageY + 20;
+    
+    this.root.style.left = `${Math.min(x, window.innerWidth - 440)}px`;
+    this.root.style.top = `${y}px`;
+    
+    requestAnimationFrame(() => this.panel.classList.add('visible'));
+  }
+
+  hide() {
+    this.panel.classList.remove('visible');
     setTimeout(() => {
       this.root.style.top = '-9999px';
-      this.root.style.left = '-9999px';
-    }, 150);
+    }, 2000);
   }
 
-  resetResponseArea() {
-    this.responseArea.classList.remove('kairo-active', 'kairo-error');
-    this.responseArea.textContent = '';
-    this.loader.classList.remove('kairo-active');
-  }
+  async handleAction(type) {
+    if (this.isProcessing) return;
+    const instruction = this.input.value.trim();
+    if (type === 'custom' && !instruction) return;
 
-  // ── Action Handling ──────────────────────────────────────────────────────────
-
-  handleAction(actionKey, customInstruction = '') {
-    if (!this.currentSelection || this.isProcessing) return;
     this.isProcessing = true;
-    this.resetResponseArea();
-    this.loader.classList.add('kairo-active');
+    this.loader.classList.add('active');
+    this.response.classList.remove('active');
+    this.copy.style.display = 'none';
 
-    chrome.runtime.sendMessage(
-      {
-        action: 'GENERATE_AI_RESPONSE',
-        payload: {
-          context: this.currentSelection,
-          actionType: actionKey,
-          customInstruction,
-          url: window.location.href,
-        },
-      },
-      response => {
-        this.isProcessing = false;
-        this.loader.classList.remove('kairo-active');
-        this.responseArea.classList.add('kairo-active');
-
-        if (response && response.status === 'success') {
-          this.responseArea.classList.remove('kairo-error');
-          this.responseArea.textContent = response.data.data.result;
-        } else {
-          this.responseArea.classList.add('kairo-error');
-          this.responseArea.textContent =
-            (response && response.error)
-              ? response.error
-              : 'Failed to generate response. Please try again.';
-        }
+    chrome.runtime.sendMessage({
+      action: 'GENERATE_AI_RESPONSE',
+      payload: {
+        context: this.currentSelection,
+        actionType: type,
+        customInstruction: instruction
       }
-    );
+    }, (res) => {
+      this.isProcessing = false;
+      this.loader.classList.remove('active');
+      
+      if (res && res.status === 'success') {
+        this.response.textContent = res.data.data.result;
+        this.response.classList.add('active');
+        this.copy.style.display = 'block';
+      } else {
+        this.response.textContent = "Error: " + (res?.error || "Unknown error");
+        this.response.classList.add('active');
+      }
+    });
   }
 
-  handleCustomAction() {
-    const instruction = this.customInput.value.trim();
-    if (!instruction) {
-      this.customInput.focus();
-      return;
-    }
-    this.handleAction('custom', instruction);
+  handleCopy() {
+    navigator.clipboard.writeText(this.response.textContent);
+    const old = this.copy.textContent;
+    this.copy.textContent = 'Copied!';
+    setTimeout(() => this.copy.textContent = old, 2000);
   }
 }
 
-// ─── Initialise once ──────────────────────────────────────────────────────────
-
-if (!window.__kairoLoaded) {
-  window.__kairoLoaded = true;
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => new KairoContentUI());
-  } else {
-    new KairoContentUI();
-  }
-}
+new KairoUI();
