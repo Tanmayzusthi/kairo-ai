@@ -322,19 +322,22 @@ class KairoUI {
 
   bindEvents() {
     document.addEventListener('mouseup', (e) => {
-      const sel = window.getSelection();
-      const text = sel.toString().trim();
-      if (text && !this.panel.contains(e.target)) {
-        this.currentSelection = text;
-        this.show(e);
-      }
+      // Small timeout to allow the selection to stabilize
+      setTimeout(() => {
+        const sel = window.getSelection();
+        const text = sel.toString().trim();
+        
+        // Only show if it's a real selection (at least 5 characters)
+        // and we are not clicking inside the panel itself
+        if (text && text.length > 5 && !this.panel.contains(e.target)) {
+          this.currentSelection = text;
+          this.show(e);
+        }
+      }, 50);
     });
 
-    document.addEventListener('mousedown', (e) => {
-      if (!this.panel.contains(e.target) && this.panel.classList.contains('visible')) {
-        this.hide();
-      }
-    });
+    // AUTO-HIDE REMOVED: The panel will now stay open until you click 'Close'
+    // This prevents it from vanishing while you are trying to use it.
   }
 
   show(e) {
