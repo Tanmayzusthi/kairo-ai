@@ -1,0 +1,10 @@
+{
+  "id": "kairo-ai-chat",
+  "name": "Kairo AI Chat",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "description": "Auto-saves Kairo AI conversations to your Obsidian vault with rich metadata and backlinks.",
+  "author": "Kairo AI",
+  "authorUrl": "https://kairo.ai",
+  "isDesktopOnly": true
+}

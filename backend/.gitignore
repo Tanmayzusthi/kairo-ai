@@ -1,0 +1,7 @@
+# NEVER commit these
+.env
+node_modules/
+
+# Build outputs
+dist/
+*.log

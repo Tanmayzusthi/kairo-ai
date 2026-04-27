@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Kairo AI",
+  "version": "1.0.0",
+  "description": "Intelligent context-aware AI assistant",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "src/background/index.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/index.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Kairo AI"
+  }
+}
